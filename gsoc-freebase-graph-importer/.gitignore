@@ -1,0 +1,7 @@
+#Ignoring files
+.DS_STORE
+.classpath
+.project
+.settings
+#Ignoring target folder
+target/
