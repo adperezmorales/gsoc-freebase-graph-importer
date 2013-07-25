@@ -84,9 +84,31 @@ The rule to update the edge properties is the following:
 
 ## Notes ##
 
-* Currently though all Tinkerpop Graphs are supported (by means of Graph interface), this tool uses the Neo4jGraph implementation of Tinkerpop Blueprints, because it supports indices and transactions which are key issues to speed up the importer process and avoid memory problems.
+* Currently though all Tinkerpop Graphs are supported (by means of Graph interface), this tool uses the **Neo4jGraph** implementation of Tinkerpop Blueprints (which use **Neo4j** implementation), because it supports indices and transactions which are key issues to speed up the importer process and avoid memory problems.
 
 *   The importer parses for each step all the files. This is thus since it is not possible to create vertex for entities which are referenced by "topic" entities because it is not known beforehand (until all the entities are processed) whether a referenced entity is a topic or not.
 
+## Benchmark ##
+
+The Freebase data dump provided by BaseKB Lime contains more than 1000 files.  
+Some tests have been performed in order to see the performance of the importer.
+
+### Environment ###
+
+* Hardware: MacBook Pro 2,3 Intel Core i7 (8 GB 1600 MHz DDR3)  
+* OS: OS X 10.8.4 (12E55) Mountain Lion 
+* Java 1.7 (jdk1.7.0_21.jdk)
+* Apache Jena 2.10
+* Tinkerpop Blueprints 2.3.0
+
+### Execution ###
+
+* Processing 1 file with with ~40.000 topics) takes about 40 seconds 
+* Processing 100 files with ~5.000.000 topics takes about 2.5 hours
+
+
+## License
+
+GSoC Freebase To Graph Importer is distributed under the terms of the [Apache License, 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 [1]: http://basekb.com
 [2]: http://blueprints.tinkerpop.com
