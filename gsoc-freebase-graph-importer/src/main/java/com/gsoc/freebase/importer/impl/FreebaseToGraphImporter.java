@@ -215,7 +215,6 @@ public class FreebaseToGraphImporter implements Importer
      */
     private void processFile(File f, StreamRDF step)
     {
-            
         RiotReader.parse(f.getAbsolutePath(), step);
     }
 }

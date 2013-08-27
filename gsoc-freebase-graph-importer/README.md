@@ -106,6 +106,9 @@ Some tests have been performed in order to see the performance of the importer.
 * Processing 1 file with with ~40.000 topics) takes about 40 seconds 
 * Processing 100 files with ~5.000.000 topics takes about 2.5 hours
 
+## Jira ##
+
+This tool is related to the [issue 1040](https://issues.apache.org/jira/browse/STANBOL-1140) of Stanbol Jira.  
 
 ## License
 

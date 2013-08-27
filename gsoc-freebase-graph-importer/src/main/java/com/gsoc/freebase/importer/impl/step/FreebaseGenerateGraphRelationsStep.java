@@ -145,7 +145,6 @@ public class FreebaseGenerateGraphRelationsStep extends AbstractFreebaseImporter
 
                 if (this.isTopicGraph(value))
                 {
-
                     // Create direct relation
                     this.createDirectRelation(property, subject, value);
                 }

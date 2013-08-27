@@ -2,6 +2,7 @@ package com.gsoc.freebase.importer.impl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.openrdf.model.impl.ValueFactoryImpl;
 import com.gsoc.freebase.importer.ImporterStep;
 import com.hp.hpl.jena.datatypes.BaseDatatype;
 import com.hp.hpl.jena.datatypes.BaseDatatype.TypedValue;
+import com.hp.hpl.jena.datatypes.xsd.XSDDateTime;
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.sparql.core.Quad;
@@ -127,7 +129,8 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
     @Override
     public void finish()
     {
-
+        //Store the last entity identified by previousSubject and properties
+        this.onItemRead(previousSubject, properties);
         this.onImportEnd();
     }
 
@@ -182,6 +185,10 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
                 TypedValue val = (TypedValue) obj;
                 objectValue = valueFactory.createLiteral(val.lexicalValue);
             }
+            else if (obj instanceof XSDDateTime) {
+                XSDDateTime date = (XSDDateTime) obj;
+                objectValue = valueFactory.createLiteral(date.toString());
+            } 
         }
         return objectValue.stringValue();
     }

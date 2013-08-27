@@ -88,7 +88,7 @@ public class FreebaseToGraphImporterTest
         for(Vertex v : graph.getVertices())
             i++;
         
-        assertEquals(545, i);
+        assertEquals(546, i);
     }
     
     /**
