@@ -78,9 +78,9 @@ The rule to update the edge properties is the following:
  * Add 1 to the previous value of the subproperty in the edge or creates the subproperty with value of 1
 
 **Example**  
-- Property: *aaa.bbb.ccc*  
-- Subproperties: *aaa*, *aaa.bbb*, *aaa.bbb.ccc* 
-- Add 1 (or create with value of 1) to the properties *aaa*, *aaa.bbb* and *aaa.bbb.ccc*
+- Property: *location.citytown.postal_codes*  
+- Subproperties: *location*, *location.citytown*, *location.citytown.postal_codes* 
+- Add 1 (or create with value of 1) to the properties *location*, *location.citytown* and *location.citytown.postal_codes*
 
 ## Notes ##
 
@@ -106,6 +106,8 @@ Some tests have been performed in order to see the performance of the importer.
 * Processing 1 file with with ~40.000 topics) takes about 40 seconds 
 * Processing 100 files with ~5.000.000 topics takes about 2.5 hours
 
+* Processing all files takes about 14 seconds per file generating the graph vertices (4.5 hours) and about an hour per file to generate the relations (this is due to locks in vertices in the Neo4j graph when creating relationships)
+ 
 ## Jira ##
 
 This tool is related to the [issue 1040](https://issues.apache.org/jira/browse/STANBOL-1140) of Stanbol Jira.  
