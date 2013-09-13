@@ -19,12 +19,12 @@ public interface Importer
      * <p>Acts as a listener, because
      * @param step the {@code ImportListener} instance to add
      */
-    public void addStep(ImporterStep step);
+    public void addStep(ImporterComponent step);
     
     /**
      * <p>Gets the steps configured for the importer</p>
      * @return the {@code Set<ImporterStep} instance
      */
-    public Set<ImporterStep> getSteps();
+    public Set<ImporterComponent> getSteps();
 
 }

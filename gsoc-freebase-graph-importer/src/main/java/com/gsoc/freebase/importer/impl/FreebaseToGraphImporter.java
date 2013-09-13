@@ -1,22 +1,27 @@
 package com.gsoc.freebase.importer.impl;
 
 import java.io.File;
-import java.io.FilenameFilter;
-import java.util.Comparator;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 
-import org.apache.jena.riot.RiotReader;
-import org.apache.jena.riot.system.StreamRDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.gsoc.freebase.importer.Importer;
-import com.gsoc.freebase.importer.ImporterStep;
+import com.gsoc.freebase.importer.consumer.FreebaseConsumer;
+import com.gsoc.freebase.importer.consumer.impl.FreebaseGenerateGraphConsumer;
+import com.gsoc.freebase.importer.consumer.impl.FreebaseGenerateRelationsConsumer;
+import com.gsoc.freebase.importer.model.Entity;
+import com.gsoc.freebase.importer.producer.FreebaseProducer;
+import com.gsoc.freebase.importer.producer.impl.FreebaseProducerImpl;
+import com.tinkerpop.blueprints.Graph;
+import com.tinkerpop.blueprints.impls.neo4j.Neo4jGraph;
 
 /**
  * <p>
- * Freebase importer to a Graph using Riot parser
+ * Freebase importer to a Graph using Riot parser in the Producer
  * </p>
  * <p>
  * It parses the BaseKBLime Freebase data dump (in Turtle, RDF, NTriples format...) and store it in a graph
@@ -44,20 +49,47 @@ import com.gsoc.freebase.importer.ImporterStep;
  * @author Antonio David Perez Morales <adperezmorales@gmail.com>
  * 
  */
-public class FreebaseToGraphImporter implements Importer
+public class FreebaseToGraphImporter
 {
-    private static Logger logger = LoggerFactory.getLogger(FreebaseToGraphImporter.class);
     /**
-     * <p>
-     * Set containing the steps to execute
-     * </p>
+     * Logger
      */
-    Set<ImporterStep> steps;
+    private static Logger logger = LoggerFactory.getLogger(FreebaseToGraphImporter.class);
+
+    /**
+     * Constants containing the default consumers size
+     */
+    private static int DEFAULT_CONSUMERS_SIZE = Runtime.getRuntime().availableProcessors();
+
+    /**
+     * Number of consumers for each step
+     */
+    private int consumerSize;
 
     /**
      * The file or directory to import
      */
     private File file;
+
+    /**
+     * Location of the graph
+     */
+    private File graphLocation;
+
+    /**
+     * The {@code Graph} implementation
+     */
+    private Graph graph;
+
+    /**
+     * Flag indicating whether to generate the graph or not
+     */
+    private boolean generateGraph;
+
+    /**
+     * Flag indicating whether to generate the graph relations
+     */
+    private boolean generateGraphRelations;
 
     /**
      * <p>
@@ -69,9 +101,9 @@ public class FreebaseToGraphImporter implements Importer
      * 
      * @param file the string or directory to import
      */
-    public FreebaseToGraphImporter(String file)
+    public FreebaseToGraphImporter(String file, String graphLocation)
     {
-        this(new File(file));
+        this(new File(file), new File(graphLocation), DEFAULT_CONSUMERS_SIZE);
     }
 
     /**
@@ -87,24 +119,38 @@ public class FreebaseToGraphImporter implements Importer
      * 
      * @param file the string or directory to import
      */
-    public FreebaseToGraphImporter(File file)
+    public FreebaseToGraphImporter(File file, File graphLocation, int consumerSize)
     {
         this.file = file;
-        this.steps = new TreeSet<>(new Comparator<ImporterStep>()
-        {
+        this.graphLocation = graphLocation;
+        this.consumerSize = consumerSize;
+        this.generateGraph = false;
+        this.generateGraphRelations = false;
 
-            @Override
-            public int compare(ImporterStep o1, ImporterStep o2)
-            {
-                if (o1.getOrder() == o2.getOrder())
-                    return 0;
-                else if (o1.getOrder() > o2.getOrder())
-                    return 1;
-                else
-                    return -1;
-            }
+    }
 
-        });
+    /**
+     * <p>
+     * Set the generate graph flag
+     * </p>
+     * 
+     * @param flag the value of the flag
+     */
+    public void setGenerateGraph(Boolean flag)
+    {
+        this.generateGraph = flag;
+    }
+
+    /**
+     * <p>
+     * Set the generate graph relations flag
+     * </p>
+     * 
+     * @param flag the value of the flag
+     */
+    public void setGenerateGraphRelations(Boolean flag)
+    {
+        this.generateGraphRelations = flag;
     }
 
     /**
@@ -112,109 +158,187 @@ public class FreebaseToGraphImporter implements Importer
      * Build an instance using the given file name and the steps
      * </p>
      */
-    public FreebaseToGraphImporter(String file, Set<ImporterStep> steps)
+    public FreebaseToGraphImporter(String file, String graphLocation, int consumerSize)
     {
-        this.file = new File(file);
-        this.steps = steps;
+        this(new File(file), new File(graphLocation), consumerSize);
     }
 
     /**
      * <p>
-     * Add the step to the step list
+     * Initialize the graph using the graph location
      * </p>
      * <p>
-     * It will be added in the execution order according to the result obtained from call the getOrder method
+     * Uses Neo4jGraph implementation of Tinkerpop Blueprints
      * </p>
-     * 
-     * @param step the {@code ImporterStep} step to add
      */
-    public void addStep(ImporterStep step)
+    private void initializeGraph()
     {
-        this.steps.add(step);
+        this.graph = new Neo4jGraph(this.graphLocation.getAbsolutePath());
     }
 
     /**
      * <p>
-     * Get the configured steps
-     * </p>
-     * 
-     * @return a {@code Set<ImporterStep>} containing the configured steps
-     */
-    public Set<ImporterStep> getSteps()
-    {
-        return this.steps;
-    }
-
-    /**
-     * <p>
-     * Performs the import process based on the supplied steps
+     * Performs the import process based using two types of consumers: FreebaseGenerateGraphConsumer and
+     * FreebaseGenerateRelationsConsumer
      * </p>
      */
-    @Override
     public void process()
     {
-        // Finish if no steps
-        if (this.steps.isEmpty())
+        /* Run the parser process */
+        try
         {
-            logger.info("Steps empty. Skip process");
-            return;
+            logger.info("Freebase importer starts");
+            long start = System.currentTimeMillis();
+            /* Run the parser process */
+            if (this.generateGraph)
+            {
+                this.generateGraph();
+            }
+            Thread.sleep(2000);
+            if (this.generateGraphRelations)
+            {
+                this.generateGraphRelations();
+            }
+            long end = System.currentTimeMillis();
+            logger.info("Freebase importer finished. Duration: " + (end - start) / 1000 + " seconds");
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
         }
 
-        /*
-         * Process the steps. This importer needs that the steps are instances of StreamRDF.
-         * If not, the step is skipped
-         */
-        for (ImporterStep step : this.steps)
-        {
-            if(!(step instanceof StreamRDF)) {
-                logger.debug("The step "+step.getClass().getName()+" doesn't implement "+StreamRDF.class.getName()+". Skipping the process");
-                continue;
-            }
-            
-            StreamRDF currentStep = (StreamRDF) step;
-            
-            if (file.isDirectory())
-            {
-                logger.debug(file.getAbsolutePath() + " is a directory. Processing directory files (one level only)");
-
-                File[] files = file.listFiles(new FilenameFilter()
-                {
-                    @Override
-                    public boolean accept(File dir, String name)
-                    {
-                        if (name.startsWith("."))
-                            return false;
-                        else
-                            return true;
-                    }
-                });
-
-                for (File f : files)
-                {
-                    this.processFile(f, currentStep);
-                }
-            }
-            else
-            {
-                logger.debug("Processing file " + this.file.getAbsolutePath());
-                this.processFile(this.file, currentStep);
-            }
-        }
     }
 
     /**
      * <p>
-     * Process the file
+     * First step: Generate the graph
      * </p>
-     * <p>
-     * In this case, a {@code RiotReader} object is used with the current step
-     * </p>
-     * 
-     * @param f the file to process
-     * @param step the current step. It is instance of {@code StreamRDF}
      */
-    private void processFile(File f, StreamRDF step)
+    private void generateGraph()
     {
-        RiotReader.parse(f.getAbsolutePath(), step);
+        /* Run the parser process */
+        logger.info("Starting generate graph process");
+        long start = System.currentTimeMillis();
+
+        CountDownLatch startLatch = new CountDownLatch(1);
+        BlockingQueue<Entity> queue = new ArrayBlockingQueue<>(this.consumerSize);
+
+        this.initializeGraph();
+
+        List<Thread> consumers = new ArrayList<>();
+        for (int i = 0; i < this.consumerSize; i++)
+        {
+
+            FreebaseConsumer consumer = new FreebaseGenerateGraphConsumer(startLatch, queue, this.graph);
+
+            Thread consumerThread = new Thread(consumer, FreebaseGenerateGraphConsumer.class.getName() + i);
+            consumers.add(consumerThread);
+            consumerThread.start();
+        }
+
+        FreebaseProducer producer = new FreebaseProducerImpl(queue, this.file);
+        Thread producerThread = new Thread(producer, FreebaseProducerImpl.class.getName());
+        try
+        {
+            // Waiting for initializarion of consumers
+            Thread.sleep(500);
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+
+        // Start the consumers
+        startLatch.countDown();
+
+        // Start the producer
+        producerThread.start();
+
+        // waiting producer and consumers thread to finish
+        try
+        {
+            producerThread.join();
+            for (Thread t : consumers)
+            {
+                t.join();
+            }
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+
+        logger.debug("Committing pending transactions");
+        this.graph.shutdown();
+
+        long end = System.currentTimeMillis();
+
+        logger.info("Generate graph (vertices) process finished. Duration: " + ((end - start) / 1000) + " seconds");
+
     }
+
+    /**
+     * <p>
+     * Second step: Generate the graph relations
+     * </p>
+     */
+    private void generateGraphRelations()
+    {
+        /* Run the parser process */
+        logger.info("Starting generate graph relations process");
+        long start = System.currentTimeMillis();
+
+        CountDownLatch startLatch = new CountDownLatch(1);
+        BlockingQueue<Entity> queue = new ArrayBlockingQueue<>(10);
+
+        initializeGraph();
+
+        /*
+         * Creates and starts the create or update edges consumer Consume edge orders produced by
+         * FreebaseGenerateRelationsConsumer
+         */
+
+        FreebaseConsumer consumer = new FreebaseGenerateRelationsConsumer(startLatch, queue, graph);
+
+        Thread relationsThread = new Thread(consumer, FreebaseGenerateRelationsConsumer.class.getName());
+        relationsThread.start();
+
+        FreebaseProducer producer = new FreebaseProducerImpl(queue, this.file);
+        Thread producerThread = new Thread(producer, FreebaseProducerImpl.class.getName());
+        try
+        {
+            // Waiting for initializarion of consumers
+            Thread.sleep(500);
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+
+        // Start the consumers
+        startLatch.countDown();
+
+        // Start the producer
+        producerThread.start();
+
+        // waiting producer and consumers thread to finish
+        try
+        {
+            producerThread.join();
+            relationsThread.join();
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+
+        logger.debug("Committing pending transactions");
+        this.graph.shutdown();
+
+        long end = System.currentTimeMillis();
+
+        logger.info("Generate graph relations (edges) process finished. Duration: " + ((end - start) / 1000)
+                + " seconds");
+    }
+
 }

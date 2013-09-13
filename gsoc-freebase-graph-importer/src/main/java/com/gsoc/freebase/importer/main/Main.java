@@ -9,12 +9,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 
-import com.gsoc.freebase.importer.Importer;
-import com.gsoc.freebase.importer.ImporterStep;
 import com.gsoc.freebase.importer.impl.FreebaseToGraphImporter;
-import com.gsoc.freebase.importer.impl.step.FreebaseGenerateGraphRelationsStep;
-import com.gsoc.freebase.importer.impl.step.FreebaseGenerateGraphStep;
-import com.tinkerpop.blueprints.impls.neo4j.Neo4jGraph;
 
 /**
  * <p>
@@ -26,7 +21,7 @@ import com.tinkerpop.blueprints.impls.neo4j.Neo4jGraph;
  */
 public class Main
 {
-    public static final String JAR_NAME = "freebase-graph-importer-{*}-jar-with-dependencies.jar";
+    public static final String JAR_NAME = "gsoc-freebase-graph-importer-{*}-jar-with-dependencies.jar";
     private static final Options options;
     static
     {
@@ -35,9 +30,10 @@ public class Main
         options.addOption("i", "inputDirectory", true,
                 "The BaseKBLime Freebase dataset file to be processed or the input directory containing the Freebase dataset files");
         options.addOption("o", "outputDirectory", true, "The output directory where the graph wil be generated");
-        options.addOption("g", "generateGraph", false, "Tell the importer to generate the graph structure (one vertex for each entity which is a common.topic)");
-        options.addOption("r", "generateRelations", false, "Tell the importer to generate the graph relations (edges between entities directly or indirectly connected");
-
+        options.addOption("g", "generateGraph", false,
+                "Tell the importer to generate the graph structure (one vertex for each entity which is a common.topic)");
+        options.addOption("r", "generateRelations", false,
+                "Tell the importer to generate the graph relations (edges between entities directly or indirectly connected");
     }
 
     /**
@@ -82,35 +78,25 @@ public class Main
 
         if (!inputDir.exists())
         {
-            System.out.println(inputDirectory + " doesn't exist. Please enter a valid file or directory to be processed");
+            System.out.println(inputDirectory
+                    + " doesn't exist. Please enter a valid file or directory to be processed");
             System.exit(0);
         }
+        
+        /* Number of consumers to be used for every type of consumers */
+        Integer consumersSize = Runtime.getRuntime().availableProcessors();
 
-        Neo4jGraph graph = new Neo4jGraph(outputDirectory);
+        FreebaseToGraphImporter freebaseImporter = new FreebaseToGraphImporter(inputDir, outputDir, consumersSize);
         
-        Importer importer = new FreebaseToGraphImporter(inputDir);
-        if(options.hasOption("g")) {
-            ImporterStep step = new FreebaseGenerateGraphStep(graph);
-            importer.addStep(step);
-        }
+        if(cmd.hasOption("g"))
+            freebaseImporter.setGenerateGraph(true);
         
-        if(options.hasOption("r")) {
-            ImporterStep step = new FreebaseGenerateGraphRelationsStep(graph);
-            importer.addStep(step);
-        }
-       
+        if(cmd.hasOption("r"))
+            freebaseImporter.setGenerateGraphRelations(true);
+
         /* Run the parser process */
-        System.out.println("Starting the process...");
-        long start = System.currentTimeMillis();
-        importer.process();
-        /* Closing the graph */
-        graph.shutdown();
+        freebaseImporter.process();
         
-        long end = System.currentTimeMillis();
-        
-        System.out.println("Import process finished");
-        System.out.println("Duration: "+((end-start)/1000)+" seconds");
-        System.exit(0);
     }
 
     /**
@@ -121,8 +107,8 @@ public class Main
     private static void printHelp()
     {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("java -Xmx{size} -jar " + JAR_NAME + " [options] \n",
-                "Freebase to Graph Importer Tool\n", options, null);
+        formatter.printHelp("java -Xmx{size} -jar " + JAR_NAME + " [options] \n", "Freebase to Graph Importer Tool\n",
+                options, null);
     }
 
 }

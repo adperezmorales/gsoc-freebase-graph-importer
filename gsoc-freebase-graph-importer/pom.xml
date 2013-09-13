@@ -7,11 +7,20 @@
 	<name>Freebase Graph Importer</name>
 	<description>Freebase Importer using BaseKBLime files into a Blueprints Graph</description>
 
+	<!--  Developers -->
+	<developers>
+		<developer>
+			<email>adperezmorales@gmail.com</email>
+			<name>Antonio David Pérez Morales</name>
+			<id>adpm</id>
+		</developer>
+	</developers>
+	
 	<properties>
 		<sesame.version>2.7.0</sesame.version>
 		<jdk.version>1.7</jdk.version>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>com.tinkerpop.blueprints</groupId>
@@ -74,7 +83,7 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.4</version>
 		</dependency>
-		<!--  OpenRDF Sesame Model -->
+		<!-- OpenRDF Sesame Model -->
 		<dependency>
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-model</artifactId>

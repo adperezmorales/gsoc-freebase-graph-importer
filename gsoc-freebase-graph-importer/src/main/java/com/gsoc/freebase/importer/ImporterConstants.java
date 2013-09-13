@@ -42,4 +42,19 @@ public class ImporterConstants
      */
     public static final String MEDIATED_CONNECTION_EDGE_LABEL = "mediated-connection";
     
+    /**
+     * Edge property containing the property used for generate an index for the edges
+     */
+    public static final String EDGE_KEY_VERTICES_CONNECTED_PROPERTY = "vertices.connected";
+    
+    /**
+     * Freebase type object name
+     */
+    public static final String FREEBASE_TYPE_OBJECT_NAME = FREEBASE_NAMESPACE + "type.object.name";
+    
+    /**
+     * Constant containing the URI of the entity to be used to cancel the consumers
+     */
+    public static final String CANCEL_ENTITY_URI = "CANCEL";
+    
 }

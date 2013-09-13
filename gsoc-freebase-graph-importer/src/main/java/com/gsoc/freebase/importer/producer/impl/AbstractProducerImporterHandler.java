@@ -1,8 +1,7 @@
-package com.gsoc.freebase.importer.impl;
+package com.gsoc.freebase.importer.producer.impl;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +12,6 @@ import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.ValueFactoryImpl;
 
-import com.gsoc.freebase.importer.ImporterStep;
 import com.hp.hpl.jena.datatypes.BaseDatatype;
 import com.hp.hpl.jena.datatypes.BaseDatatype.TypedValue;
 import com.hp.hpl.jena.datatypes.xsd.XSDDateTime;
@@ -23,19 +21,18 @@ import com.hp.hpl.jena.sparql.core.Quad;
 
 /**
  * <p>
- * Base Stream RDF class to be used with Riot Reader
+ * AbstractProducerImporterHandler class
+ * </p>
+ * <p>
+ * Abstract (Stream RDF) class to be used with Riot Reader to listen read triples
  * </p>
  * 
  * @author Antonio David Perez Morales <adperezmorales@gmail.com>
  * 
  */
-public abstract class AbstractFreebaseImporterStep implements ImporterStep, StreamRDF
+public abstract class AbstractProducerImporterHandler implements StreamRDF
 {
-    /**
-     * The order of the step in the importer step chain
-     */
-    protected int order;
-    int i;
+
     /**
      * The previous subject processed
      */
@@ -44,7 +41,7 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
     /**
      * The properties of the subject being processed
      */
-    private HashMap<String, List<String>> properties;
+    private Map<String, List<String>> properties;
 
     /**
      * The factory to generate and convert values
@@ -62,8 +59,8 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
         /*
          * Init variables
          */
-        previousSubject = "";
-        properties = new HashMap<String, List<String>>();
+        this.previousSubject = "";
+        this.properties = new HashMap<String, List<String>>();
 
         // Simply call to onImportStart, which will be override by the child classes
         this.onImportStart();
@@ -77,17 +74,19 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
     @Override
     public void triple(Triple triple)
     {
- 
+
         if (!previousSubject.equals(triple.getSubject().getURI()))
         {
             if (previousSubject != null && previousSubject != "")
             {
+                /*
+                 * Call the onItemRead whose implementation is in the child classes
+                 */
                 this.onItemRead(previousSubject, properties);
             }
 
             previousSubject = triple.getSubject().getURI();
-            properties.clear();
-            i++;
+            this.properties = new HashMap<String, List<String>>();
         }
 
         Node predicate = triple.getPredicate();
@@ -99,7 +98,6 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
             properties.put(predicate.getURI(), new ArrayList<String>());
 
         properties.get(predicate.getURI()).add(objectValue);
-
     }
 
     @Override
@@ -129,13 +127,16 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
     @Override
     public void finish()
     {
-        //Store the last entity identified by previousSubject and properties
+        // Store the last entity identified by previousSubject and properties
         this.onItemRead(previousSubject, properties);
         this.onImportEnd();
     }
 
     /**
-     * <p>Generate a String representation of the Node object</p>
+     * <p>
+     * Generate a String representation of the Node object
+     * </p>
+     * 
      * @param object the Node to obtain the string representation
      * @return the {@code String} representation
      */
@@ -185,30 +186,37 @@ public abstract class AbstractFreebaseImporterStep implements ImporterStep, Stre
                 TypedValue val = (TypedValue) obj;
                 objectValue = valueFactory.createLiteral(val.lexicalValue);
             }
-            else if (obj instanceof XSDDateTime) {
+            else if (obj instanceof XSDDateTime)
+            {
                 XSDDateTime date = (XSDDateTime) obj;
                 objectValue = valueFactory.createLiteral(date.toString());
-            } 
+            }
         }
         return objectValue.stringValue();
     }
 
     /**
-     * <p>Default implementation</p>
-     * <p>It returns 0</p>
+     * <p>
+     * Method called when a new item (entity) has been read
+     * </p>
+     * 
+     * @param subject the subject (URI) of the item
+     * @param properties the properties of the item
      */
-    public int getOrder()
-    {
-        return 0;
-    }
-    
-    @Override
     public abstract void onItemRead(String subject, Map<String, List<String>> properties);
 
-    @Override
-    public abstract void onImportStart();
+    /**
+     * <p>
+     * Method called when the import process starts. Redefine it in child classes
+     * </p>
+     */
+    public void onImportStart(){}
 
-    @Override
-    public abstract void onImportEnd();
+    /**
+     * <p>
+     * Method called when the import process ends. Redefine it in child classes
+     * </p>
+     */
+    public void onImportEnd(){}
 
 }
