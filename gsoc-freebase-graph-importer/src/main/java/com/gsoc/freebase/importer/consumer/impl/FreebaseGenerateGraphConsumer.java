@@ -174,7 +174,7 @@ public class FreebaseGenerateGraphConsumer implements FreebaseConsumer {
                         vertex.setProperty(ImporterConstants.VERTEX_ENTITY_URI_PROPERTY, entity.getUri());
 
                         //blank value for image, will be overridden if it has one
-                        vertex.setProperty("image", "");
+                        vertex.setProperty("image", "novalue");
                     /*
                      * Adding only rdf-type and type.object.name properties
                      */
