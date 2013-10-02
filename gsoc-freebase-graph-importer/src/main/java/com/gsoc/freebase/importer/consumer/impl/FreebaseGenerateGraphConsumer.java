@@ -194,9 +194,13 @@ public class FreebaseGenerateGraphConsumer implements FreebaseConsumer
                      */
                     for (String property : entity.getProperties().keySet())
                     {
-                        if (property.equals(ImporterConstants.RDF_TYPE) || property.equals(ImporterConstants.FREEBASE_TYPE_OBJECT_NAME))
+                        if (property.equals(ImporterConstants.RDF_TYPE))
                         {
                             vertex.setProperty(property, entity.getProperties().get(property));
+                        }
+                        if(property.equals(ImporterConstants.FREEBASE_TYPE_OBJECT_NAME)) {
+
+                            vertex.setProperty("name", entity.getProperties().get(property));
                         }
                     }
 
