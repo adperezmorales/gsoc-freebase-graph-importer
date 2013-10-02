@@ -187,15 +187,15 @@ public class FreebaseGenerateGraphConsumer implements FreebaseConsumer {
                                 vertex.setProperty("name", entity.getProperties().get(property).get(0));
                             }
                             if (property.contains("image")) {
-                                Map<String, List<String>> props = entity.getProperties();
+                                //Map<String, List<String>> props = entity.getProperties();
                                 vertex.setProperty("image", entity.getProperties().get(property).get(0));
 
-                                List<String> x = props.get(property);
-                                System.out.println("entity = " + entity.getUri());
-                                for (String s : x) {
-                                    System.out.println("image property = " + s);
+                                //List<String> x = props.get(property);
+                               // System.out.println("entity = " + entity.getUri());
+                              //  for (String s : x) {
+                               //     System.out.println("image property = " + s);
 
-                                }
+                                //}
 
 
                                 //System.out.println("******************************" + property);
