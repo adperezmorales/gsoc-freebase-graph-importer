@@ -11,6 +11,8 @@ import com.tinkerpop.blueprints.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 
@@ -181,6 +183,10 @@ public class FreebaseGenerateGraphConsumer implements FreebaseConsumer {
                             if (property.equals(ImporterConstants.FREEBASE_TYPE_OBJECT_NAME)) {
 
                                 vertex.setProperty("name", entity.getProperties().get(property).get(0));
+                            }
+                            if(property.startsWith("/common/topic/image")){
+                               // Map<String,List<String>> props=entity.getProperties().get(property);
+                                vertex.setProperty("image", entity.getProperties().get(property));
                             }
                         }
 
