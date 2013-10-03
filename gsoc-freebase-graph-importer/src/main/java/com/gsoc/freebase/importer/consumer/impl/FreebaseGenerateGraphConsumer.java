@@ -185,6 +185,7 @@ public class FreebaseGenerateGraphConsumer implements FreebaseConsumer {
                             if (property.equals(ImporterConstants.FREEBASE_TYPE_OBJECT_NAME)) {
 
                                 vertex.setProperty("common_topic_name", entity.getProperties().get(property).get(0));
+                                vertex.setProperty("common_topic_name_lc", entity.getProperties().get(property).get(0).toLowerCase());
                             }
                             if (property.contains("image")) {
                                 //Map<String, List<String>> props = entity.getProperties();
