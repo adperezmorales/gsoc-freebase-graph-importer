@@ -19,7 +19,7 @@ public class FreebaseUtils
      */
     public static boolean isFreebaseId(String uri)
     {
-        return uri.startsWith("http://rdf.freebase.com/ns/m");
+        return uri.startsWith("http://rdf.basekb.com/ns/m");
     }
     
     /**

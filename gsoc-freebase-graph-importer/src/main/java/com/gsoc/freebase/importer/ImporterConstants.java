@@ -10,7 +10,7 @@ public class ImporterConstants
     /**
      * Freebase namespace
      */
-    public static final String FREEBASE_NAMESPACE = "http://rdf.freebase.com/ns/";
+    public static final String FREEBASE_NAMESPACE = "http://rdf.basekb.com/ns/";
     
     /**
      * RDF namespace
